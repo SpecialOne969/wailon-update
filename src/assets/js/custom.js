@@ -334,8 +334,8 @@
 	/* footer year */
 
 	/* node waves */
-	Waves.attach(".btn-wave", ["waves-light"]);
-	Waves.init();
+	// Waves.attach(".btn-wave", ["waves-light"]);
+	// Waves.init();
 	/* node waves */
 
 	/* card with close button */
