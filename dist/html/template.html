@@ -989,19 +989,18 @@
 							</div>
 						</div>
 					</div>
-
-					<!-- Template column -->
 					<div class="col-lg-6 col-md-6 col-sm-12 col-xxl-3">
 						<div class="card custom-card">
 							<div class="card-header">
-								<div class="card-title">Templates</div>
+								<div class="card-title">Trips</div>
 							</div>
 							<div class="card-body">
 								<select
 									id="templ"
 									class="js-example-templating js-persons form-control"
 								>
-									<option disabled selected>Select a template</option>
+									<option value="unit_trips">Trips</option>
+									<option value="unit_stays">Stays</option>
 								</select>
 							</div>
 						</div>
@@ -1058,6 +1057,18 @@
 				<div class="row">
 					<!-- <div> -->
 					<div class="card custom-card">
+						<div class="card-header justify-content-between">
+							<div class="card-title">Report Columns</div>
+						</div>
+						<div class="card-body div-height">
+							<ul id="columns" class="list-group"></ul>
+						</div>
+						<div class="btn-list my-3">
+							<button class="btn btn-info" onclick="selectTemplate1()">
+								Template 1
+							</button>
+							<button class="btn btn-info" onclick="reset()">Reset</button>
+						</div>
 						<div class="btn-list">
 							<input
 								class="btn btn-info"
@@ -1675,10 +1686,6 @@
 								"</option>"
 						);
 
-					getTemplates();
-
-					$("#res").change(getTemplates); // bind action to select change
-
 					var units = sess.getItems("avl_unit"); // get loaded 'avl_units's items
 					// check if units found
 					if (!units || !units.length) {
@@ -1699,126 +1706,46 @@
 						);
 				}
 			);
-			// drawCheckboxes();
-			// $("#templ").change(drawCheckboxes);
+			drawCheckboxes();
+			$("#templ").change(drawCheckboxes);
 		}
 
-		function getTemplates() {
-			// get report templates and put it in select list
-			$("#templ").html("<option></option>"); // ad first empty element
-			var res = wialon.core.Session.getInstance().getItem($("#res").val()); // get resource by id
-			// check user access to execute reports
-			if (
-				!wialon.util.Number.and(
-					res.getUserAccess(),
-					wialon.item.Item.accessFlag.execReports
-				)
-			) {
-				$("#exec_btn").prop("disabled", true); // if not enough rights - disable button
-				msg("Not enought rights for report execution");
-				return; // print message and exit
-			} else $("#exec_btn").prop("disabled", false); // if enough rights - disable button
+		function drawCheckboxes() {
+			// get available reports table
+			wialon.core.Session.getInstance().getReportTables(function (code, data) {
+				var selectedTmpl = $("#templ").val();
+				var col = [];
+				var html = "";
+				for (var i = 0; i < data.length; i++) {
+					if (data[i].n == selectedTmpl) {
+						//draw only selected report table
+						col = data[i].col;
 
-			var templ = res.getReports(); // get reports templates for resource
-			for (var i in templ) {
-				if (templ[i].ct != "avl_unit") continue; // skip non-unit report templates
-				// add report template to select list
-				$("#templ").append(
-					"<option value='" + templ[i].id + "'>" + templ[i].n + "</option>"
-				);
-			}
-		}
+						// Add checkboxes for "Driver Name" and "Driver Score"
+						html +=
+							'<li class="rep_col list-group-item"><input class="form-check-input me-1 fw-semibold" type="checkbox" id="driver_score"/><label for="driver_score">Driver Score</label></li>';
+						html +=
+							'<li class="rep_col list-group-item"><input class="form-check-input me-1 fw-semibold" type="checkbox" id="acceleration"/><label for="acceleration">Acceleration</label></li>';
+						html +=
+							'<li class="rep_col list-group-item"><input class="form-check-input me-1 fw-semibold" type="checkbox" id="brake"/><label for="brake">Brake</label></li>';
 
-		// function drawCheckboxes() {
-		// 	// get available reports table
-		// 	wialon.core.Session.getInstance().getReportTables(function (code, data) {
-		// 		var selectedTmpl = $("#templ").val();
-		// 		var col = [];
-		// 		var html = "";
-		// 		for (var i = 0; i < data.length; i++) {
-		// 			if (data[i].n == selectedTmpl) {
-		// 				//draw only selected report table
-		// 				col = data[i].col;
-
-		// 				// Add checkboxes for "Driver Name" and "Driver Score"
-		// 				html +=
-		// 					'<li class="rep_col list-group-item"><input class="form-check-input me-1 fw-semibold" type="checkbox" id="driver_score"/><label for="driver_score">Driver Score</label></li>';
-		// 				html +=
-		// 					'<li class="rep_col list-group-item"><input class="form-check-input me-1 fw-semibold" type="checkbox" id="acceleration"/><label for="acceleration">Acceleration</label></li>';
-		// 				html +=
-		// 					'<li class="rep_col list-group-item"><input class="form-check-input me-1 fw-semibold" type="checkbox" id="brake"/><label for="brake">Brake</label></li>';
-
-		// 				for (var j = 0; j < col.length; j++) {
-		// 					// construct Select object using found report columns
-		// 					if (col[j].l !== "" && col[j].n !== "") {
-		// 						html +=
-		// 							'<li class="list-group-item"><input  class="rep_col form-check-input me-1 fw-semibold" type="checkbox" id="' +
-		// 							col[j].n +
-		// 							'"/><label for="' +
-		// 							col[j].n +
-		// 							'">' +
-		// 							paintLabel(col[j].l) +
-		// 							"</label></li>";
-		// 					}
-		// 				}
-		// 			}
-		// 		}
-		// 		$("#columns").html(html);
-		// 	});
-		// }
-
-		function executeReport() {
-			// execute selected report
-			// get data from corresponding fields
-			var id_res = $("#res").val(),
-				id_templ = $("#templ").val(),
-				id_unit = $("#units").val(),
-				time = $("#interval").val();
-			if (!id_res) {
-				msg("Select resource");
-				return;
-			} // exit if no resource selected
-			if (!id_templ) {
-				msg("Select report template");
-				return;
-			} // exit if no report template selected
-			if (!id_unit) {
-				msg("Select unit");
-				return;
-			} // exit if no unit selected
-
-			var sess = wialon.core.Session.getInstance(); // get instance of current Session
-			var res = sess.getItem(id_res); // get resource by id
-			var to = sess.getServerTime(); // get current server time (end time of report time interval)
-			var from = to - parseInt($("#interval").val(), 10); // calculate start time of report
-			// specify time interval object
-			var interval = {
-				from: from,
-				to: to,
-				flags: wialon.item.MReport.intervalFlag.absolute,
-			};
-			var template = res.getReport(id_templ); // get report template by id
-			$("#exec_btn").prop("disabled", true); // disable button (to prevent multiclick while execute)
-
-			res.execReport(
-				template,
-				id_unit,
-				0,
-				interval, // execute selected report
-				function (code, data) {
-					// execReport template
-					$("#exec_btn").prop("disabled", false); // enable button
-					if (code) {
-						msg(wialon.core.Errors.getErrorText(code));
-						return;
-					} // exit if error code
-					if (!data.getTables().length) {
-						// exit if no tables obtained
-						msg("<b>There is no data generated</b>");
-						return;
-					} else showReportResult(data); // show report result
+						for (var j = 0; j < col.length; j++) {
+							// construct Select object using found report columns
+							if (col[j].l !== "" && col[j].n !== "") {
+								html +=
+									'<li class="list-group-item"><input  class="rep_col form-check-input me-1 fw-semibold" type="checkbox" id="' +
+									col[j].n +
+									'"/><label for="' +
+									col[j].n +
+									'">' +
+									paintLabel(col[j].l) +
+									"</label></li>";
+							}
+						}
+					}
 				}
-			);
+				$("#columns").html(html);
+			});
 		}
 
 		function paintLabel(label) {
@@ -1851,245 +1778,242 @@
 			$("#driver_score,#acceleration,#brake").prop("checked", false);
 		}
 
-		// function executeReport() {
-		// 	// execute selected report
-		// 	// get data from corresponding fields
-		// 	var id_res = $("#res").val(),
-		// 		templ = $("#templ").val(),
-		// 		id_unit = $("#units").val(),
-		// 		time = $("#interval").val();
-		// 	if (!id_res) {
-		// 		msg("Select resource");
-		// 		return;
-		// 	} // exit if no resource selected
-		// 	if (!id_unit) {
-		// 		msg("Select unit");
-		// 		return;
-		// 	} // exit if no unit selected
-		// 	var sess = wialon.core.Session.getInstance(); // get instance of current Session
-		// 	var res = sess.getItem(id_res); // get resource by id
-		// 	var to = sess.getServerTime(); // get current server time (end time of report time interval)
-		// 	var from = to - parseInt($("#interval").val(), 10); // calculate start time of report
-		// 	var columns = $("ul li .rep_col:checked"); // get columns, that need to be in a report
-		// 	// specify time interval object
-		// 	var interval = {
-		// 		from: from,
-		// 		to: to,
-		// 		flags: wialon.item.MReport.intervalFlag.absolute,
-		// 	};
+		function executeReport() {
+			// execute selected report
+			// get data from corresponding fields
+			var id_res = $("#res").val(),
+				templ = $("#templ").val(),
+				id_unit = $("#units").val(),
+				time = $("#interval").val();
+			if (!id_res) {
+				msg("Select resource");
+				return;
+			} // exit if no resource selected
+			if (!id_unit) {
+				msg("Select unit");
+				return;
+			} // exit if no unit selected
+			var sess = wialon.core.Session.getInstance(); // get instance of current Session
+			var res = sess.getItem(id_res); // get resource by id
+			var to = sess.getServerTime(); // get current server time (end time of report time interval)
+			var from = to - parseInt($("#interval").val(), 10); // calculate start time of report
+			var columns = $("ul li .rep_col:checked"); // get columns, that need to be in a report
+			// specify time interval object
+			var interval = {
+				from: from,
+				to: to,
+				flags: wialon.item.MReport.intervalFlag.absolute,
+			};
 
-		// 	var c = "",
-		// 		cl = ""; // columns and columnsLabels variables
-		// 	for (var i = 0; i < columns.length; i++) {
-		// 		// cycle to generate columns and columnsLabels
-		// 		c += (c == "" ? "" : ",") + columns[i].id;
-		// 		cl += (cl == "" ? "" : ",") + $(columns[i].nextSibling).text(); //.innerText;
-		// 	}
-		// 	$("#exec_btn").prop("disabled", true); // disable button (to prevent multiclick while execute)
+			var c = "",
+				cl = ""; // columns and columnsLabels variables
+			for (var i = 0; i < columns.length; i++) {
+				// cycle to generate columns and columnsLabels
+				c += (c == "" ? "" : ",") + columns[i].id;
+				cl += (cl == "" ? "" : ",") + $(columns[i].nextSibling).text(); //.innerText;
+			}
+			$("#exec_btn").prop("disabled", true); // disable button (to prevent multiclick while execute)
 
-		// 	console.log("================c===========", c);
-		// 	console.log("================cl===========", cl);
-		// 	var template = {
-		// 		// fill template object
-		// 		id: 0,
-		// 		n: templ,
-		// 		ct: "avl_unit",
-		// 		p: "",
-		// 		tbl: [
-		// 			{
-		// 				n: templ,
-		// 				l: $("#templ option[value='" + templ + "']").text(),
-		// 				c: c,
-		// 				cl: cl,
-		// 				s: "",
-		// 				sl: "",
-		// 				p: "",
-		// 				sch: {
-		// 					f1: 0,
-		// 					f2: 0,
-		// 					t1: 0,
-		// 					t2: 0,
-		// 					m: 0,
-		// 					y: 0,
-		// 					w: 0,
-		// 				},
-		// 				f: 0,
-		// 			},
-		// 		],
-		// 	};
-		// 	// for (var i = 0; i < units.length; i++) {
-		// 	//console.log(units$('#units').val());
-		// 	//}
+			console.log("================c===========", c);
+			console.log("================cl===========", cl);
+			var template = {
+				// fill template object
+				id: 0,
+				n: templ,
+				ct: "avl_unit",
+				p: "",
+				tbl: [
+					{
+						n: templ,
+						l: $("#templ option[value='" + templ + "']").text(),
+						c: c,
+						cl: cl,
+						s: "",
+						sl: "",
+						p: "",
+						sch: {
+							f1: 0,
+							f2: 0,
+							t1: 0,
+							t2: 0,
+							m: 0,
+							y: 0,
+							w: 0,
+						},
+						f: 0,
+					},
+				],
+			};
+			// for (var i = 0; i < units.length; i++) {
+			//console.log(units$('#units').val());
+			//}
 
-		// 	res.execReport(
-		// 		template,
-		// 		id_unit,
-		// 		0,
-		// 		interval, // execute selected report
+			res.execReport(
+				template,
+				id_unit,
+				0,
+				interval, // execute selected report
 
-		// 		function (code, data) {
-		// 			console.log(data);
-		// 			// execReport template
-		// 			$("#exec_btn").prop("disabled", false); // enable button
-		// 			if (code) {
-		// 				msg(wialon.core.Errors.getErrorText(code));
-		// 				return;
-		// 			} // exit if error code
-		// 			if (!data.getTables().length) {
-		// 				// exit if no tables obtained
-		// 				msg("<b>There is no data generated</b>");
-		// 				return;
-		// 			} else showReportResult(data); // show report result
-		// 		}
-		// 	);
-		// }
+				function (code, data) {
+					console.log(data);
+					// execReport template
+					$("#exec_btn").prop("disabled", false); // enable button
+					if (code) {
+						msg(wialon.core.Errors.getErrorText(code));
+						return;
+					} // exit if error code
+					if (!data.getTables().length) {
+						// exit if no tables obtained
+						msg("<b>There is no data generated</b>");
+						return;
+					} else showReportResult(data); // show report result
+				}
+			);
+		}
 
 		function showReportResult(result) {
 			// show result after report execute
-			function executeReport() {
-				var id_res = $("#res").val(),
-					id_templ = $("#templ").val(),
-					id_unit = $("#units").val(),
-					time = $("#interval").val();
-				if (!id_res) {
-					msg("Select resource");
-					return;
-				} // exit if no resource selected
-				if (!id_templ) {
-					msg("Select report template");
-					return;
-				} // exit if no report template selected
-				if (!id_unit) {
-					msg("Select unit");
-					return;
-				} // exit if no unit selected
-
-				var sess = wialon.core.Session.getInstance(); // get instance of current Session
-				var res = sess.getItem(id_res); // get resource by id
-				var to = sess.getServerTime(); // get current server time (end time of report time interval)
-				var from = to - parseInt($("#interval").val(), 10); // calculate start time of report
-				// specify time interval object
-				var interval = {
-					from: from,
-					to: to,
-					flags: wialon.item.MReport.intervalFlag.absolute,
-				};
-				var template = res.getReport(id_templ); // get report template by id
-				$("#exec_btn").prop("disabled", true);
-
-				res.execReport(
-					template,
-					id_unit,
-					0,
-					interval, // execute selected report
-					function (code, data) {
-						// execReport template
-						$("#exec_btn").prop("disabled", false); // enable button
-						if (code) {
-							msg(wialon.core.Errors.getErrorText(code));
-							return;
-						} // exit if error code
-						if (!data.getTables().length) {
-							// exit if no tables obtained
-							msg("<b>There is no data generated</b>");
-							return;
-						} else showReportResult(data); // show report result
-					}
-				);
-				// end
-			}
-			var tables = result.getTables(); // get report tables
+			var tables = result.getTables(
+				"driver_name",
+				"driver_score",
+				"distance",
+				"acceleration",
+				"brake",
+				"driving_hours",
+				"speed"
+			); // get report tables
 			if (!tables) return; // exit if no tables
-
+			console.log(tables);
+			const date = new Date();
+			const months = [
+				"Jan",
+				"Feb",
+				"Mar",
+				"Apr",
+				"May",
+				"Jun",
+				"Jul",
+				"Aug",
+				"Sep",
+				"Oct",
+				"Nov",
+				"Dec",
+			];
+			let month = months[date.getMonth()];
 			for (var i = 0; i < tables.length; i++) {
 				// cycle on tables
 				// html contains information about one table
 				var html = `
-		  <div class="row">
-		    <div class="col-12 col-sm-12">
-		        <div class="card">
+  <div class="row">
+    <div class="col-12 col-sm-12">
+        <div class="card">
 
-		      <div class="card-header d-lg-flex">
-		        <h3 class="card-title mb-lg-0 mb-3">${tables[i].label}</h3>
+      <div class="card-header d-lg-flex">
+        <h3 class="card-title mb-lg-0 mb-3">Drivers Performance Report</h3>
+        <div class="tabs-menu1 ms-auto border-0 p-0">
+          <!-- Tabs -->
+          <ul class="nav panel-tabs product-sale">
+            <li><a href="#" data-bs-toggle="tab">
+              Date/Time: ${date.getDate()} - ${month} ${date.getFullYear()} ${date.getHours()}: ${date.getMinutes()}: ${date.getSeconds()}
+            </a></li>
+            <li><a href="#" data-bs-toggle="tab">
+              GMT Time Zone: ${date}
+            </a></li>
+            <li><a href="#" data-bs-toggle="tab">
+              ${tables[i].label}
+            </a></li>
+          </ul>
+        </div>
+      </div>
 
-		      </div>
-
-		    //
-		      <div class="card-body product-table">
-
-		        <div class="tab-content">
-		          <div class="tab-pane border-0 p-0 active" id="tab5">
-		            <div class="table-responsive">
-		              <table class="table table-bordered text-nowrap mb-0">
-		`;
+    // 
+      <div class="card-body product-table">
+        
+        <div class="tab-content">
+          <div class="tab-pane border-0 p-0 active" id="tab5">
+            <div class="table-responsive">
+              <table class="table table-bordered text-nowrap mb-0">
+`;
 
 				var headers = tables[i].header; // get table headers
+				console.log(headers);
+
 				html += `
-		              <thead class="border-top">
-		                <tr>
-		`;
+              <thead class="border-top">
+                <tr>
+`;
 
 				for (var j = 0; j < headers.length; j++) {
+					console.log(headers[j]);
 					// add header
 					html += `<th>${headers[j]}</th>`;
 				}
+				html += `<th>Acceleration</th>`;
+				html += `<th>Brake</th>`;
+				html += `<th>Driver Score</th>`;
 
 				html += `
-		                </tr>
-		              </thead>
-		`; // close header row
+                </tr>
+              </thead>
+`; // close header row
 
 				result.getTableRows(
 					i,
 					0,
 					tables[i].rows, // get Table rows
-					qx.lang.Function.bind(
-						function (html, code, rows) {
-							// getTableRows callback
-							if (code) {
-								msg(wialon.core.Errors.getErrorText(code));
-								return;
-							} // exit if error code
+					function (code, rawRows) {
+						// getTableRows callback
+						if (code) {
+							msg(wialon.core.Errors.getErrorText(code));
+							return;
+						} // exit if error code
 
-							for (var j in rows) {
-								// cycle on table rows
-								if (typeof rows[j].c == "undefined") continue; // skip empty rows
+						const rows = rawRows.map((row) => {
+							console.log(row);
+							const acceleration = parseInt(row.c[4].t) / timeToSeconds(row.c[1]);
+							row.c.push(acceleration.toFixed(2) + " km/h");
+							row.c.push("-" + acceleration.toFixed(2) + " km/h");
+							row.c.push(100);
+							return row;
+						});
+						for (var j in rows) {
+							// cycle on table rows
+							if (typeof rows[j].c == "undefined") continue; // skip empty rows
 
-								html += `<tbody><tr>`;
+							html += `<tbody><tr>`;
 
-								for (var k = 0; k < rows[j].c.length; k++) {
-									// add ceils to table
-									html += `
-		            <td>
-		              <h6 class="mb-0 fs-14 fw-semibold">
-		                ${getTableValue(rows[j].c[k])}
-		              </h6>
-		            </td>
-					`;
-								}
-
+							for (var k = 0; k < rows[j].c.length; k++) {
+								// add ceils to table
 								html += `
-		          </tr>
-		        </tbody>
-		      `; // close table row
+            <td>
+              <h6 class="mb-0 fs-14 fw-semibold">
+                ${getTableValue(rows[j].c[k])}
+              </h6>
+            </td>
+			`;
 							}
 
 							html += `
-		              </table>`;
-							msg(
-								html +
-									` </div>
-		          </div>
-		        </div>
-		      </div>
-		  </div>
-		  </div>
-		  </div>`
-							);
-						},
-						this,
-						html
-					)
+          </tr>
+        </tbody>
+      `; // close table row
+						}
+
+						html += `
+              </table>`;
+						msg(
+							html +
+								` </div>
+          </div>
+        </div>
+      </div>
+  </div>
+  </div>
+  </div>`
+						);
+					},
+					this,
+					html
 				);
 			}
 		}
